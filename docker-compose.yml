@@ -1,0 +1,17 @@
+networks:
+  cms-network:
+    driver: bridge
+  elastic-network:
+    driver: bridge
+
+volumes:
+  data_opencart-3:
+  data_filebeat:
+  data_metricbeat:
+  data_elasticsearch:
+  data_kibana:
+  data_logstash:
+
+include:
+  - ./prod/docker-cms-compose.yml
+  - ./prod/docker-elastic-compose.yml

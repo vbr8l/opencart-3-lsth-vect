@@ -1,0 +1,31 @@
+heartbeat.monitors:
+  - type: http
+    id: cms-frontend
+    name: CMS frontend
+    schedule: '@every 5s'
+    urls:
+      - https://frontend
+    ssl:
+      verification_mode: none
+  - type: tcp
+    id: cms-database
+    name: CMS database
+    hosts:
+      - database
+    ports:
+      - 3306
+    schedule: '@every 5s'
+
+setup.template:
+  settings:
+    index.number_of_shards: 1
+    index.codec: best_compression
+
+processors:
+  #- add_host_metadata: ~
+  #- add_docker_metadata: ~
+
+output.elasticsearch:
+  hosts: '${ELASTICSEARCH_HOST}'
+  username: '${ELASTICSEARCH_USERNAME:}'
+  password: '${ELASTICSEARCH_PASSWORD:}'

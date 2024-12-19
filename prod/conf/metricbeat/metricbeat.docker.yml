@@ -1,0 +1,39 @@
+metricbeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+metricbeat.modules:
+  - module: nginx
+    metricsets:
+      - stubstatus
+    enabled: true
+    period: 10s
+    hosts: ["http://frontend:8008"]
+    server_status_path: "stub_status"
+  - module: mysql
+    metricsets:
+      - status
+    period: 10s
+    hosts: ["mysqld_exporter:XJ5WBcJjaccjpamZ@tcp(database:3306)/"]
+  - module: php_fpm
+    metricsets:
+      - pool
+    enabled: true
+    period: 10s
+    status_path: "/status"
+    hosts: ["php-fpm:9000"]
+
+setup.template:
+  settings:
+    index.number_of_shards: 1
+    index.codec: best_compression
+
+processors:
+  #- add_host_metadata: ~
+  #- add_docker_metadata: ~
+
+output.elasticsearch:
+  hosts: '${ELASTICSEARCH_HOST}'
+  username: '${ELASTICSEARCH_USERNAME:}'
+  password: '${ELASTICSEARCH_PASSWORD:}'
