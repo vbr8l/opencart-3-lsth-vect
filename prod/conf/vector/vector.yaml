@@ -1,0 +1,63 @@
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+sources:
+  filebeat:
+    type: logstash
+    address: 0.0.0.0:5044
+
+transforms:
+  filebeat_transformed:
+    type: remap
+    inputs:
+      - filebeat
+    drop_on_abort: true
+    source: |
+      if .event.dataset == "nginx" {
+        . |= parse_regex!(
+            .message,
+            r'^(?P<remote_ip>\d+\.\d+\.\d+\.\d+) - (?P<user_name>\W+) \[(?P<nginx_time>\d+/\w+/\d+:\d+:\d+:\d+ \+\d+)\] "(?P<method>\w+) (?P<url>\W+) HTTP/(?P<http_version>\d+.\d+)" (?P<response_code>\d+) (?P<body_sent>\d+) "(?P<referrer>\W+)" "(?P<http_client>\S+)'
+        )
+        timestamp_parsed = parse_timestamp!(.nginx_time, format: "%d/%h/%Y:%H:%M:%S %z")
+        .timestamp = timestamp_parsed
+      }
+      if .event.dataset == "php-fpm" {
+        . |= parse_regex!(
+            .message,
+            r'^(?P<remote_ip>\d+\.\d+\.\d+\.\d+) -  (?P<php_time>\d+/\w+/\d+:\d+:\d+:\d+ \+\d+) "(?P<method>\w+) (?P<url>\S+)" (?P<response_code>\d+)'
+        )
+        timestamp_parsed = parse_timestamp!(.php_time, format: "%d/%h/%Y:%H:%M:%S %z")
+        .timestamp = timestamp_parsed
+      }
+      if .event.dataset == "mysql" {
+        . |= parse_regex!(
+            .message,
+            r'^(?P<mysql_time>\d+-\d+-\d+T\d+:\d+:\d+.\S+.) (?P<pid>\d+) \[(?P<loglevel>\w+)\] \[(?P<mysql_subsystem>\S+)\] \[(?P<mysql_unit>\w+)\] (?P<mysql_message>.*)'
+        )
+        timestamp_parsed = parse_timestamp!(.mysql_time, format: "%+")
+        .timestamp = timestamp_parsed
+      }
+
+sinks:
+  elasticsearch:
+    type: elasticsearch
+    inputs:
+      - filebeat_transformed
+    api_version: auto
+    compression: none
+    doc_type: _doc
+    endpoints:
+      - http://elasticsearch:9200
+    id_key: id
+    mode: bulk
+    bulk:
+      index: "cms-{{ docker.container.labels.com_docker_compose_service }}-%Y.%m.%d"
+#  print:
+#    type: console
+#    inputs:
+#      - filebeat
+#    encoding:
+#      codec: json
+#      json:
+#        pretty: true
